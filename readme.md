@@ -57,64 +57,8 @@ which you can override to customize detection behavior for your specific use cas
 ## 🧪 Examples:
 
 ### Native mode
-```text
-Processing query: "find orders facade"...
-Detected relevant filters: FacadeInterface
-┌────────────────────────────────────────────────────────────┐
-│ Result #1                                                  │
-└────────────────────────────────────────────────────────────┘
-File: /path-to-project/vendor/spryker/spryker/Bundles/Sales/src/Spryker/Zed/Sales/Business/SalesFacadeInterface.php:343
-────────────────────────────────────────────────────────────
-SalesFacadeInterface::findOrderByIdSalesOrderItem
-Specification:
-- Returns the order for the given sales order item id.
-- Hydrates order using quote level (BC) or item level shipping addresses.
-┌────────────────────────────────────────────────────────────┐
-│ Result #2                                                  │
-└────────────────────────────────────────────────────────────┘
-File: /path-to-project/vendor/spryker/spryker/Bundles/Sales/src/Spryker/Zed/Sales/Business/SalesFacadeInterface.php:330
-────────────────────────────────────────────────────────────
-SalesFacadeInterface::findOrderByIdSalesOrder
-Specification:
-- Returns persisted order information for the given sales order id.
-- Hydrates order by calling HydrateOrderPlugin's registered in project dependency provider.
-- Hydrates order using quote level (BC) or item level shipping addresses.
-┌────────────────────────────────────────────────────────────┐
-│ Result #3                                                  │
-└────────────────────────────────────────────────────────────┘
-File: /path-to-project/vendor/spryker/spryker/Bundles/Shipment/src/Spryker/Zed/Shipment/Business/ShipmentFacadeInterface.php:408
-────────────────────────────────────────────────────────────
-ShipmentFacadeInterface::findSalesOrderItemsIdsBySalesShipmentId
-Specification:
-- Returns sales order items by sales order id and salesShipmentId or null.
 
-...
-```
-
-### Native plus AI mode
-```text
-┌────────────────────────────────────────────────────────────┐
-│ AI Analysis Results...                                     │
-└────────────────────────────────────────────────────────────┘
-Based on the search query "find orders facade", here is a sorted list of functions related to order management facades:
-
-1. **Name**: findCustomerOrderList
-   **Full Description**: Returns a transfer with the filtered list of orders for the given customer.
-   **Full Absolute Path**:
-   /path-to-project/vendor/spryker/spryker/Bundles/Sales/src/Spryker/Zed/Sales/Business/SalesFacadeInterface.php:249
-
-2. **Name**: getOffsetPaginatedCustomerOrderList
-   **Full Description**: Returns a transfer with the filtered list of orders for the given customer.
-   **Full Absolute Path**:
-   /path-to-project/vendor/spryker/spryker/Bundles/Sales/src/Spryker/Zed/Sales/Business/SalesFacadeInterface.php:249
-
-3. **Name**: checkDuplicateOrder
-   **Full Description**: Checks that the order is not a duplicate.
-   **Full Absolute Path**:
-    /path-to-project/vendor/spryker/spryker/Bundles/Sales/src/Spryker/Zed/Sales/Business/SalesFacadeInterface.php:515
-...
-```
-
+![Example extension point for quote](docs/images/native-example.png)
 
 ## 📦 Prerequisites
 
@@ -186,13 +130,31 @@ or
 bash run
 ```
 
+## MCP server makes the tool compatible with various AI agents to extend context with Spryker Project context
+
+### Tools:
+ - [Claude desktop](https://claude.ai/download)
+ - [JetBrains AI Assistant plugin](https://plugins.jetbrains.com/plugin/22282-jetbrains-ai-assistant)
+ - [Qodo Gen JetBrains plugin](https://plugins.jetbrains.com/plugin/21206-qodo-gen)
+ - [Windsurf](https://docs.windsurf.com/windsurf/mcp)
+ - [Cursor](https://docs.cursor.com/context/model-context-protocol)
+ - [Cursor](https://docs.cursor.com/context/model-context-protocol)
+ - etc.
+
+### [How to configure?](mcp/readme.md)
+
+### Example:
+![Claude example 1](docs/images/claude-1.png)
+![Claude example 2](docs/images/claude-2.png)
+![Claude example 3](docs/images/claude-3.png)
+
 ## 📈 Roadmap
 
 - Controller classes indexing (public methods);
 - Dependency provider's extension points;
+- Filtering by Module name;
 - AI chat mode - discuss with AI results or better query;
 - AI: search with remote AI agent (Gemini, OpenAI, etc.);
-- MCP server.
 
 ## 📄 License
 

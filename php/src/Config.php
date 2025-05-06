@@ -132,4 +132,12 @@ class Config
             ],
         ];
     }
+
+    public function getQueryStopWords(): array
+    {
+        return [
+            'Spryker',
+            'project',
+        ];
+    }
 }

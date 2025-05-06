@@ -10,17 +10,17 @@ NC='\033[0m' # No Color
 
 # Function for section headers
 section_header() {
-  echo -e "\n${BOLD}${BLUE}=== $1 ===${NC}\n"
+  echo  "\n${BOLD}${BLUE}=== $1 ===${NC}\n"
 }
 
 # Function for success messages
 success_msg() {
-  echo -e "${GREEN}✓ $1${NC}"
+  echo "${GREEN}✓ $1${NC}"
 }
 
 # Function for info messages
 info_msg() {
-  echo -e "${CYAN}ℹ $1${NC}"
+  echo "${CYAN}ℹ $1${NC}"
 }
 
 # Animated spinner function
@@ -39,13 +39,13 @@ spinner() {
 }
 
 # Welcome banner
-echo -e "${BOLD}${CYAN}"
+echo "${BOLD}${CYAN}"
 echo "  ┌─────────────────────────────────────────┐"
 echo "  │                                         │"
 echo "  │  🔍 Spryker Semantic Search             │"
 echo "  │                                         │"
 echo "  └─────────────────────────────────────────┘"
-echo -e "${NC}"
+echo "${NC}"
 
 info_msg "Welcome to the Spryker Semantic Search tool installer! Let's get you set up..."
 sleep 1
@@ -60,7 +60,7 @@ success_msg "Docker containers are up and running!"
 section_header "LAUNCH"
 info_msg "Everything is ready! Launching the search tool..."
 echo ""
-echo -e "${BOLD}${GREEN}🚀 Semantic Search is now ready to use!${NC}"
+echo "${BOLD}${GREEN}🚀 Semantic Search is now ready to use!${NC}"
 echo ""
 
 # Launch the tool
