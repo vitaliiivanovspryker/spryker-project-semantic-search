@@ -60,6 +60,11 @@ which you can override to customize detection behavior for your specific use cas
 
 ![Example extension point for quote](docs/images/native-example.png)
 
+### Native plus AI mode
+
+![Example non splittable bundle item 1](docs/images/native-ai-1.png)
+![Example extension point for quote 2](docs/images/native-ai-2.png)
+
 ## 📦 Prerequisites
 
 Ensure you have the following installed on your machine:

@@ -110,7 +110,6 @@ class PromptChatCommand extends Command
             $searchMode = $factory->getConfig()->getSearchMode();
 
             if ($searchMode === 'native-plus-ai') {
-                $output->writeln('<processing>Analyzing results with AI...</processing>');
                 $this->renderWithAI($factory, $normalizedQuestion, $metadata);
             } elseif ($searchMode === 'native') {
                 $this->renderResults($input, $output, $metadata);
@@ -131,14 +130,6 @@ class PromptChatCommand extends Command
      */
     private function renderWithAI(Factory $factory, string $normalizedQuestion, array $metadata): void
     {
-        $preparedData = json_encode(
-            array_map(static function (array $data): array {
-                unset($data['name'], $data['type']);
-                return $data;
-            }, $metadata),
-            JSON_PRETTY_PRINT,
-        );
-
         echo PHP_EOL;
         echo "┌────────────────────────────────────────────────────────────┐" . PHP_EOL;
         echo "│ \e[1;36m Search Results \e[0m                                           │" . PHP_EOL;
@@ -150,24 +141,31 @@ class PromptChatCommand extends Command
             echo "\e[0;90m" . $metadatum['file_reference'] . "\e[0m" . PHP_EOL;
         }
 
+        $preparedData = json_encode(
+            array_column($metadata, 'code'),
+            JSON_PRETTY_PRINT,
+        );
+
         echo PHP_EOL;
         echo "┌────────────────────────────────────────────────────────────┐" . PHP_EOL;
         echo "│ \e[1;36mAI Analysis Results...\e[0m                                     │" . PHP_EOL;
         echo "└────────────────────────────────────────────────────────────┘" . PHP_EOL;
 
+        $prompt =  'Considering search results' . PHP_EOL . sprintf('```json' . PHP_EOL . '%s ' . PHP_EOL . '```'  . PHP_EOL, $preparedData)
+            . 'answer to user\'s search query ' . PHP_EOL . '```text' . PHP_EOL . $normalizedQuestion. PHP_EOL .  '```' . PHP_EOL .
+            'Summarise results, sort them by relevance to user search query, list sorted by relevance results (at least 30%). Print results as for console' . PHP_EOL;
+
         $response = $factory
             ->createSearchResultAssistantAgent()
             ->stream(
-                new UserMessage(
-                    'Read search results' . sprintf('```json%s``` ', $preparedData)
-                    . ' , sort them by relevance to user\'s search query "' . $normalizedQuestion . '"'
-                    . ' and print all of them - ' . count($metadata) . ' results - as a text list that includes: name, full description and full absolute path (do not shorten). '
-                )
+                new UserMessage($prompt)
             );
 
+        echo "\e[1;36m";
         foreach ($response as $string) {
             echo $string;
         }
+        echo "\e[0m";
     }
 
     /**
