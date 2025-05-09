@@ -4,8 +4,8 @@ services:
     ollama:
         image: ollama/ollama:latest
         container_name: ollama
-        ports:
-            - "11434:11434"
+#        ports:
+#            - "11434:11434"
         volumes:
             - ./ollama_data:/root/.ollama
         networks:
@@ -35,7 +35,7 @@ services:
         container_name: php
         volumes:
             - ./php:/var/www/html
-            - ./../:/var/www/project
+            - .lo/../:/var/www/project
 #        ports:
 #            - "9000:9000"
 #            - "9003:9003"

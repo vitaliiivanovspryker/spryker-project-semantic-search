@@ -18,13 +18,14 @@ class SearchResultAssistantAgent extends Agent implements SearchResultAssistantA
 
     public function instructions(): string
     {
-        return 'You are an AI Agent specialized in evaluating and summarising as a text data by relevance to user\'s prompt.'
-            . 'Read search results.'
+        return 'You are an AI Assistant specialized in evaluating and summarising data by relevance to user question in Spryker php application.'
+            . 'Read search results of in Spryker project.'
             . 'Read user\'s prompt.'
             . 'Do not edit or modify search results'
             . 'Do not generate code.'
             . 'Do not generate additional information for context.'
-            . 'Answer with plaintext with no special tags.';
+            . 'Answer as text with no special tags.'
+            . 'Do not answer with json, markdown, table format.';
     }
 
 }

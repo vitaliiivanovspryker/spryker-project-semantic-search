@@ -11,7 +11,7 @@ use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Formatter\OutputFormatterStyle;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Output\OutputInterface;
-use Symfony\Component\Console\Question\Question;
+use Symfony\Component\Console\Style\SymfonyStyle;
 
 class PromptChatCommand extends Command
 {
@@ -47,6 +47,7 @@ class PromptChatCommand extends Command
     protected function execute(InputInterface $input, OutputInterface $output): int
     {
         $this->configureOutputStyles($output);
+        $io = new SymfonyStyle($input, $output);
         $factory = Factory::init();
 
         $promptHelper = $factory->createPromptHelper();
@@ -55,7 +56,6 @@ class PromptChatCommand extends Command
         $vectorDbClient = $factory->createChromaDbClient();
         $collectionId = $vectorDbClient->getCollectionIdByName($this->getConfig()->getProjectName());
 
-        $helper = $this->getHelper('question');
         $output->writeln([
             '',
             '<header>╔════════════════════════════════════════════════════════════╗</>',
@@ -68,9 +68,7 @@ class PromptChatCommand extends Command
         ]);
 
         while (true) {
-            $question = new Question('<question> >> I would like to find: </question>');
-            $userQuestion = $helper->ask($input, $output, $question);
-
+            $userQuestion = $io->ask('<question> >> I would like to find: </question>');
             if (empty($userQuestion) || in_array(strtolower(trim($userQuestion)), self::EXIT_COMMANDS, true)) {
                 $output->writeln('<info> Goodbye! Have a great day!</info>');
                 break;
@@ -78,7 +76,6 @@ class PromptChatCommand extends Command
 
             $output->writeln("<processing>Processing query: \"$userQuestion\"...</processing>");
             $normalizedQuestion = $promptHelper->normalisePrompts($userQuestion);
-
             if (empty($normalizedQuestion)) {
                 $output->writeln('<error>Could not process your question. Please try again.</error>');
                 continue;
@@ -86,10 +83,13 @@ class PromptChatCommand extends Command
 
             $types = $typeDetector->getTypesByPrompts($normalizedQuestion);
             $filters = [];
-
             if (!empty($types)) {
                 $output->writeln("<processing>Detected relevant filters: " . implode(', ', $types) . "</processing>");
-                $filters = $this->createFilters($types);
+                $confirmTypes = $io->confirm('Confirm applied filters: ' . implode(', ', $types) . '.', true);
+                if ($confirmTypes) {
+                    $output->writeln("<processing>Applied filters: " . implode(', ', $types) . "</processing>");
+                    $filters = $this->createFilters($types);
+                }
             }
 
             $embeddedPrompt = $embeddingClient->getEmbeddingVector($normalizedQuestion);
@@ -101,16 +101,20 @@ class PromptChatCommand extends Command
             );
 
             $metadata = $answer['metadatas'][0] ?? [];
-
             if (empty($metadata)) {
                 $output->writeln('<error>No results found. Please try a different query.</error>');
                 continue;
             }
 
-            $searchMode = $factory->getConfig()->getSearchMode();
-
+            $searchMode = $io->choice('Select how to display results', ['native', 'native-plus-ai'], 'native', false);
             if ($searchMode === 'native-plus-ai') {
-                $this->renderWithAI($factory, $normalizedQuestion, $metadata);
+                foreach (array_chunk($metadata, 10) as $result) {
+                    $this->renderWithAI($input, $output, $factory, $normalizedQuestion, $result);
+                    $more = $io->choice('More findings?', ['yes', 'no'], 'yes', false);
+                    if ($more === 'no') {
+                        break;
+                    }
+                }
             } elseif ($searchMode === 'native') {
                 $this->renderResults($input, $output, $metadata);
             }
@@ -121,39 +125,34 @@ class PromptChatCommand extends Command
         return Command::SUCCESS;
     }
 
-    /**
-     * @param Factory $factory
-     * @param string $normalizedQuestion
-     * @param array $metadata
-     *
-     * @return void
-     */
-    private function renderWithAI(Factory $factory, string $normalizedQuestion, array $metadata): void
+    private function renderWithAI(
+        InputInterface  $input,
+        OutputInterface $output,
+        Factory         $factory,
+        string          $normalizedQuestion,
+        array           $metadata,
+    ): void
     {
-        echo PHP_EOL;
-        echo "┌────────────────────────────────────────────────────────────┐" . PHP_EOL;
-        echo "│ \e[1;36m Search Results \e[0m                                           │" . PHP_EOL;
-        echo "└────────────────────────────────────────────────────────────┘" . PHP_EOL;
+        $output->writeln(PHP_EOL);
+        $output->writeln("┌────────────────────────────────────────────────────────────┐");
+        $output->writeln("│ \e[1;36m Search Results \e[0m                                           │");
+        $output->writeln("└────────────────────────────────────────────────────────────┘");
 
+        $preparedDataString = PHP_EOL;
         foreach ($metadata as $index => $metadatum) {
-            echo PHP_EOL;
-            echo "\e[1;33m" . ($index + 1) . ". " . $metadatum['name'] . "\e[0m" . PHP_EOL;
-            echo "\e[0;90m" . $metadatum['file_reference'] . "\e[0m" . PHP_EOL;
+            $output->writeln("\e[1;33m" . ($index + 1) . ". " . $metadatum['name'] . "\e[0m");
+            $output->writeln("\e[0;90m" . $metadatum['file_reference'] . "\e[0m");
+            $preparedDataString .= $metadatum['code'] . PHP_EOL;
         }
 
-        $preparedData = json_encode(
-            array_column($metadata, 'code'),
-            JSON_PRETTY_PRINT,
-        );
+        $output->writeln(PHP_EOL);
+        $output->writeln("┌────────────────────────────────────────────────────────────┐");
+        $output->writeln("│ \e[1;36mAI Analysis Results...\e[0m                                     │");
+        $output->writeln("└────────────────────────────────────────────────────────────┘");
 
-        echo PHP_EOL;
-        echo "┌────────────────────────────────────────────────────────────┐" . PHP_EOL;
-        echo "│ \e[1;36mAI Analysis Results...\e[0m                                     │" . PHP_EOL;
-        echo "└────────────────────────────────────────────────────────────┘" . PHP_EOL;
-
-        $prompt =  'Considering search results' . PHP_EOL . sprintf('```json' . PHP_EOL . '%s ' . PHP_EOL . '```'  . PHP_EOL, $preparedData)
-            . 'answer to user\'s search query ' . PHP_EOL . '```text' . PHP_EOL . $normalizedQuestion. PHP_EOL .  '```' . PHP_EOL .
-            'Summarise results, sort them by relevance to user search query, list sorted by relevance results (at least 30%). Print results as for console' . PHP_EOL;
+        $prompt = 'Considering only the following PHP snippets without you own knowledge base:' . PHP_EOL . PHP_EOL . $preparedDataString . PHP_EOL
+            . 'Answer my question: ' . PHP_EOL . 'I would like to find only relevant classes or methods related to "' . $normalizedQuestion . '".' . PHP_EOL . PHP_EOL .
+            'Answer should have only information relevant to the question. If the provided data does not contain relevant information, then to try more. Your answer has to be as text list for console output.' . PHP_EOL;
 
         $response = $factory
             ->createSearchResultAssistantAgent()
@@ -161,11 +160,12 @@ class PromptChatCommand extends Command
                 new UserMessage($prompt)
             );
 
-        echo "\e[1;36m";
+        $output->write("\e[1;36m");
         foreach ($response as $string) {
-            echo $string;
+            $output->write($string);
         }
-        echo "\e[0m";
+        $output->write("\e[0m");
+        $output->write(PHP_EOL);
     }
 
     /**
@@ -177,25 +177,26 @@ class PromptChatCommand extends Command
      */
     private function renderResults(InputInterface $input, OutputInterface $output, array $metadata): void
     {
-        $helper = $this->getHelper('question');
+        $io = new SymfonyStyle($input, $output);
+
         $chunks = array_chunk($metadata, $this->getConfig()->getMaxChunkDisplayResults());
 
         foreach ($chunks as $index => $chunkedMetadata) {
             foreach ($chunkedMetadata as $resultIndex => $metadatum) {
                 $overallIndex = ($index * $this->getConfig()->getMaxChunkDisplayResults()) + $resultIndex + 1;
-                echo "┌────────────────────────────────────────────────────────────┐" . PHP_EOL;
-                echo "│ \e[1;36mResult #" . $overallIndex . "\e[0m                                                  │" . PHP_EOL;
-                echo "└────────────────────────────────────────────────────────────┘" . PHP_EOL;
-                echo "\e[1;33mFile:\e[0m " . $metadatum['file_reference'] . PHP_EOL;
-                echo "────────────────────────────────────────────────────────────" . PHP_EOL;
-                echo $metadatum['code'] . PHP_EOL;
+                $output->writeln("┌────────────────────────────────────────────────────────────┐");
+                $output->writeln("│ \e[1;36mResult #{$overallIndex}\e[0m                                                  │");
+                $output->writeln("└────────────────────────────────────────────────────────────┘");
+                $output->writeln("\e[1;33mFile:\e[0m " . $metadatum['file_reference']);
+                $output->writeln("────────────────────────────────────────────────────────────");
+                $output->writeln($metadatum['code']);
             }
 
-            if ($index < count($chunks) - 1) {
-                $question = new Question('<question> >> Press ENTER to see more results or type anything to finish: </question>');
-                $moreVariantsAnswer = $helper->ask($input, $output, $question);
+            $output->writeln(PHP_EOL);
 
-                if (!empty($moreVariantsAnswer)) {
+            if ($index < count($chunks) - 1) {
+                $more = $io->choice('More findings?', ['yes', 'no'], 'yes', false);
+                if ($more === 'no') {
                     break;
                 }
             }

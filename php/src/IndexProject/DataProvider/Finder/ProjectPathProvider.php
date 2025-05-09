@@ -35,11 +35,17 @@ class ProjectPathProvider implements ProjectPathProviderInterface
      */
     private function getDirs(): array
     {
-        return [
-            PROJECT_DIR . $this->config->getProjectSrcDir(),
+        $dirs = [
             PROJECT_DIR . '/vendor/spryker/spryker',
             PROJECT_DIR . '/vendor/spryker/spryker-shop',
-            PROJECT_DIR . '/vendor/spryker-eco',
+            PROJECT_DIR . '/vendor/spryker-eco'
         ];
+
+        foreach ($this->config->getProjectSrcDir() as $projectSrcDir) {
+            $dirs[] = PROJECT_DIR . '/' . $projectSrcDir;
+        }
+
+        var_dump($dirs);die();
+        return $dirs;
     }
 }

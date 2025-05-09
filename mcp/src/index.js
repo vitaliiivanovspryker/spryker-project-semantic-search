@@ -11,13 +11,13 @@
  * @module SprykerProjectSemanticSearch
  */
 
-import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
-import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
-import { z } from "zod";
+import {McpServer} from "@modelcontextprotocol/sdk/server/mcp.js";
+import {StdioServerTransport} from "@modelcontextprotocol/sdk/server/stdio.js";
+import {z} from "zod";
 import dotenv from 'dotenv';
-import { createLogger } from './logger.js';
-import { getEmbedding } from './services/embeddingService.js';
-import { queryChromaDB } from './services/chromaService.js';
+import {createLogger} from './logger.js';
+import {getEmbedding} from './services/embeddingService.js';
+import {queryChromaDB} from './services/chromaService.js';
 
 // Load environment variables from .env file
 dotenv.config();
@@ -30,7 +30,7 @@ const server = new McpServer({
     name: "SprykerProjectSemanticSearch",
     version: "1.0.0",
     description: "A tool that provides semantic search capabilities for the Spryker project " + (process.env.PROJECT_NAME || '')
-        + " codebase among code references. "
+        + " codebase among method and class names. "
         + "Limitation: the tool does not search the full file or class content, class or method implementation, just short code references that includes class name, method name and method annotation"
 });
 
@@ -40,18 +40,21 @@ logger.info('Initializing MCP server for Spryker Project ' + (process.env.PROJEC
  * using natural language
  */
 server.tool(
-    "search",
+    "search_in_project",
+    'To search classes and methods in ' + (process.env.PROJECT_NAME || ''),
     {
-        query: z.
-            string().
-            describe("The natural language query to search for relevant code in the Spryker project " + (process.env.PROJECT_NAME || '') + " class names, method names or method annotations"),
+        query: z
+            .string()
+            .max(120)
+            .min(5)
+            .describe("The natural language query that contains class or method names"),
         types: z
             .array(z.string())
             .optional()
             .describe("Optional array of types to filter by [\"Plugin\", \"PluginInterface\", \"FacadeInterface\", \"ServiceInterface\", \"ClientInterface\", \"Config\"]." +
-            " Apply what is needed, leave empty if not needed")
+                " Apply what is needed, leave empty if not needed")
     },
-    async ({ query, types }) => {
+    async ({query, types}) => {
 
         try {
             logger.info(`Processing semantic search query: "${query}"`);
@@ -66,7 +69,7 @@ server.tool(
             const numResults = Number(process.env.NUM_RESULTS) || 15;
 
             // Check if types are provided and create filters
-            const filters = types && types.length > 0 ? { type: { $in: types } } : undefined;
+            const filters = types && types.length > 0 ? {type: {$in: types}} : undefined;
             if (filters) {
                 logger.info(`Applying type filters: ${JSON.stringify(filters)}`);
             }
@@ -80,8 +83,7 @@ server.tool(
                 content: [
                     {
                         type: "text",
-                        text: `Found ${results.length} results matching your query with type filters ${JSON.stringify(types)} that contain code references to method names and their annotations. ` +
-                            `If they do not match expectation, please repeat with a rephrased query or add or remove types to filter results:\n` +
+                        text: `Found ${results.length} results matching your query with type filters ${JSON.stringify(types)} that contain code references to method names and their annotations. ` + `\n` +
                             `\`\`\`json\n${JSON.stringify((results.map((result) => result.metadata.code || '')), null, 2)}\n\`\`\``
                     }
                 ]

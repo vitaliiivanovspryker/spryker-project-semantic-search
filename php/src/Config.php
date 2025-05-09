@@ -52,9 +52,16 @@ class Config
         return $_ENV['PROJECT_NAME'];
     }
 
-    public function getProjectSrcDir(): string
+    /**
+     * @return array<string>
+     */
+    public function getProjectSrcDir(): array
     {
-        return $_ENV['PROJECT_SRC_DIR'];
+        $value = trim($_ENV['PROJECT_SRC_DIRS'] ?? '');
+        $value = trim($value, ',');
+        $value = trim($value, '/');
+        $dirs = explode(',', $value);
+        return array_map('trim', $dirs);
     }
 
     public function getMaxQueryResults(): int
@@ -65,11 +72,6 @@ class Config
     public function getMaxChunkDisplayResults(): int
     {
         return (int)$_ENV['MAX_CHUNK_DISPLAY_RESULTS'];
-    }
-
-    public function getSearchMode(): string
-    {
-        return $_ENV['SEARCH_MODE'] ?? 'native';
     }
 
     public function getAIProvider(): string
