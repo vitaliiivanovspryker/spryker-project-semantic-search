@@ -118,7 +118,8 @@ const transport = new StdioServerTransport();
 // Start the server
 try {
     await server.connect(transport);
-    logger.info('MCP server connected and ready to process requests');
+    logger.info('Hello! MCP server connected and ready to process requests');
+    logger.info(`Server is configured for project: ${process.env.PROJECT_NAME || 'unknown'}`);
 } catch (error) {
     logger.error(`Failed to start MCP server: ${error.message}`, {
         error,
